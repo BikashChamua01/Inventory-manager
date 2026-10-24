@@ -1,0 +1,34 @@
+/* Variant edit page additions. Existing product form styles remain in use. */
+.variant-edit-note {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.variant-edit-attribute-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.variant-edit-page .product-form-submit-bar {
+  gap: 16px;
+}
+
+.variant-edit-page .product-form-field input:focus,
+.variant-edit-page .product-form-field select:focus {
+  outline: 2px solid #bfdbfe;
+  outline-offset: 1px;
+}
+
+@media (max-width: 640px) {
+  .variant-edit-page {
+    padding: 16px;
+  }
+}

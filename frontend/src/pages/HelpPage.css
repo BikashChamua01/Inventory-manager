@@ -1,0 +1,156 @@
+/* Help centre page — designed to fit the Inventory Manager app shell. */
+.help-page {
+  --help-ink: var(--text-primary, #172033);
+  --help-muted: var(--text-secondary, #687386);
+  --help-line: var(--border-color, #e5e9f0);
+  --help-surface: var(--surface, #ffffff);
+  --help-soft: var(--surface-muted, #f7f9fc);
+  --help-accent: var(--accent, #4f46e5);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 5px 30px ;
+  color: var(--help-ink);
+}
+.help-page * { box-sizing: border-box; }
+.help-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 188px;
+  overflow: hidden;
+  padding: 30px 34px;
+  border: 1px solid #dfe5ff;
+  border-radius: 22px;
+  background: linear-gradient(115deg, #f3f5ff 0%, #f9fbff 55%, #eef7ff 100%);
+}
+.help-hero-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border: 1px solid #dce3ff;
+  border-radius: 17px;
+  background: #fff;
+  color: #4f46e5;
+  box-shadow: 0 6px 18px #3341550d;
+}
+.help-hero-copy { position: relative; z-index: 1; max-width: 650px; }
+.help-eyebrow, .help-kicker {
+  margin: 0 0 8px;
+  color: #5965b3;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+.help-hero h1 { margin: 0; font-size: clamp(27px, 3vw, 36px); letter-spacing: -.04em; line-height: 1.15; }
+.help-hero p:last-child { max-width: 600px; margin: 11px 0 0; color: #596579; font-size: 14px; line-height: 1.65; }
+.help-hero-mark { position: absolute; right: 40px; color: #8a96e5; opacity: .2; transform: rotate(-8deg); }
+.help-search-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 32px;
+  padding: 0 16px;
+  min-height: 58px;
+  border: 1px solid var(--help-line);
+  border-radius: 15px;
+  background: var(--help-surface);
+  color: var(--help-muted);
+  box-shadow: 0 4px 18px #1f293708;
+}
+.help-search-panel input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--help-ink); font: inherit; font-size: 14px; }
+.help-search-panel input::placeholder { color: #98a2b3; }
+.help-search-panel button { border: 0; border-radius: 8px; padding: 7px 10px; background: var(--help-soft); color: var(--help-muted); cursor: pointer; font: inherit; font-size: 12px; }
+.help-section { margin-top: 32px; }
+.help-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 16px; }
+.help-section-heading h2, .help-contact-copy h2 { margin: 0; font-size: 21px; letter-spacing: -.025em; }
+.help-section-heading .help-kicker { display: block; margin-bottom: 7px; }
+.help-section-heading > p { margin: 0 0 2px; color: var(--help-muted); font-size: 12px; }
+.help-quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.help-quick-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 15px 13px;
+  border: 1px solid var(--help-line);
+  border-radius: 14px;
+  background: var(--help-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+.help-quick-card:hover { transform: translateY(-2px); border-color: #c6ccff; box-shadow: 0 8px 20px #27356a0b; }
+.help-quick-icon, .help-principle-icon, .help-contact-icon { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; border-radius: 12px; background: #f0f2ff; color: #5148c9; }
+.help-quick-text { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.help-quick-text strong { font-size: 12px; line-height: 1.35; }
+.help-quick-text small { color: var(--help-muted); font-size: 10px; line-height: 1.35; }
+.help-arrow { flex: 0 0 auto; color: #9aa3b2; }
+.help-module-list { display: grid; gap: 10px; }
+.help-module { overflow: hidden; border: 1px solid var(--help-line); border-radius: 14px; background: var(--help-surface); }
+.help-module summary { display: flex; align-items: center; gap: 14px; padding: 17px 18px; cursor: pointer; list-style: none; }
+.help-module summary::-webkit-details-marker { display: none; }
+.help-module-number { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 11px; background: var(--help-soft); color: #65708a; font-size: 11px; font-weight: 800; }
+.help-module-title { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.help-module-title strong { font-size: 14px; }
+.help-module-title small { color: var(--help-muted); font-size: 12px; line-height: 1.5; }
+.help-expand-label { color: #5965b3; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.help-module[open] summary { border-bottom: 1px solid var(--help-line); background: #fbfcff; }
+.help-module-body { padding: 14px 24px 18px 68px; }
+.help-module-body ol { display: grid; gap: 9px; margin: 0; padding-left: 18px; color: var(--help-muted); font-size: 13px; line-height: 1.65; }
+.help-module-body li { padding-left: 3px; }
+.help-open-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 15px; color: #4f46e5; font-size: 12px; font-weight: 750; text-decoration: none; }
+.help-open-link:hover { text-decoration: underline; }
+.help-no-results { display: flex; align-items: center; flex-direction: column; gap: 9px; padding: 34px 18px; border: 1px dashed var(--help-line); border-radius: 15px; color: var(--help-muted); text-align: center; }
+.help-no-results strong { color: var(--help-ink); }
+.help-no-results p { margin: 0; font-size: 12px; }
+.help-principles-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+.help-principle { padding: 19px; border: 1px solid var(--help-line); border-radius: 15px; background: var(--help-surface); }
+.help-principle h3 { margin: 14px 0 8px; font-size: 13px; line-height: 1.45; }
+.help-principle p { margin: 0; color: var(--help-muted); font-size: 12px; line-height: 1.7; }
+.help-note { display: flex; align-items: flex-start; gap: 11px; margin-top: 14px; padding: 15px 17px; border: 1px solid #dce9df; border-radius: 13px; background: #f6fbf7; color: #477253; }
+.help-note svg { flex: 0 0 auto; margin-top: 2px; }
+.help-note p { margin: 0; color: #4f6655; font-size: 12px; line-height: 1.7; }
+.help-note strong { color: #285a36; }
+.help-contact-section { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr); gap: 28px; margin-top: 34px; padding: 25px; border: 1px solid var(--help-line); border-radius: 19px; background: var(--help-soft); }
+.help-contact-copy .help-kicker { display: block; }
+.help-contact-copy h2 { margin-bottom: 10px; }
+.help-contact-copy p { margin: 0; color: var(--help-muted); font-size: 13px; line-height: 1.75; }
+.help-contact-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.help-contact-card { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 13px; border: 1px solid var(--help-line); border-radius: 13px; background: var(--help-surface); color: inherit; text-decoration: none; }
+.help-contact-card:hover { border-color: #c6ccff; }
+.help-contact-card > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.help-contact-card small { color: var(--help-muted); font-size: 10px; }
+.help-contact-card strong { overflow-wrap: anywhere; font-size: 11px; }
+.help-contact-card > svg { flex: 0 0 auto; color: #929bad; }
+.help-contact-icon { flex-basis: 34px; width: 34px; height: 34px; border-radius: 10px; }
+.help-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 24px; padding: 4px 2px; color: var(--help-muted); font-size: 11px; }
+.help-footer > svg { color: #7e88a0; }
+.help-footer-note { margin-left: auto; }
+@media (max-width: 1050px) {
+  .help-quick-grid, .help-principles-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .help-contact-section { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .help-page { padding-top: 0; }
+  .help-hero { min-height: 0; padding: 23px 19px; gap: 12px; border-radius: 17px; }
+  .help-hero-icon { flex-basis: 44px; width: 44px; height: 44px; border-radius: 13px; }
+  .help-hero-mark { right: 12px; opacity: .1; }
+  .help-hero-copy { max-width: 100%; }
+  .help-hero h1 { font-size: 27px; }
+  .help-hero p:last-child { font-size: 12px; }
+  .help-search-panel { margin: 15px 0 25px; min-height: 52px; }
+  .help-quick-grid, .help-principles-grid, .help-contact-cards { grid-template-columns: 1fr; }
+  .help-section-heading { align-items: start; flex-direction: column; gap: 6px; }
+  .help-section-heading h2, .help-contact-copy h2 { font-size: 19px; }
+  .help-module summary { gap: 10px; padding: 13px; }
+  .help-module-number { flex-basis: 31px; width: 31px; height: 31px; }
+  .help-module-title strong { font-size: 13px; }
+  .help-module-title small { font-size: 11px; }
+  .help-expand-label { display: none; }
+  .help-module-body { padding: 13px 16px 17px 52px; }
+  .help-contact-section { padding: 18px; gap: 18px; }
+  .help-footer-note { width: 100%; margin-left: 24px; }
+}

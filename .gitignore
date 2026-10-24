@@ -1,0 +1,27 @@
+
+# Keep environment variables out of version control
+
+/generated/prisma
+
+node_modules/
+dist/
+release/
+out/
+build/
+*.db
+*.sqlite
+*.sqlite-journal
+.env
+*.pem
+*.lic
+
+dist-electron/
+backups/
+restore-swap-lab/
+*.before-restore
+.agents/
+.claude/
+.cursor/
+.devin/
+.windsurf/
+skills-lock.json

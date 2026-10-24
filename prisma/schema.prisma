@@ -1,0 +1,320 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id          String             @id @default(cuid())
+  name        String
+  sku         String?            @unique
+  description String?
+  categoryId  String?
+  category    Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  attributes  ProductAttribute[]
+  variants    ProductVariant[]
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([categoryId])
+  @@index([name])
+}
+
+model ProductAttribute {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  value     String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([productId, name])
+}
+
+model ProductVariant {
+  id                  String               @id @default(cuid())
+  productId           String
+  name                String
+  sku                 String?              @unique
+  unit                String               @default("piece")
+  purchasePricePaise  Int                  @default(0)
+  sellingPricePaise   Int                  @default(0)
+  averageCostPaise    Int                  @default(0)
+  averageCostKnown    Boolean              @default(false)
+  stockQuantity       Int                  @default(0)
+  lowStockThreshold   Int                  @default(0)
+  product             Product              @relation(fields: [productId], references: [id], onDelete: Restrict)
+  attributes          VariantAttribute[]
+  stockMovements      StockMovement[]
+  purchaseItems       PurchaseItem[]
+  saleItems           SaleItem[]
+  purchaseReturnItems PurchaseReturnItem[]
+  saleReturnItems     SaleReturnItem[]
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([productId])
+}
+
+model VariantAttribute {
+  id        String         @id @default(cuid())
+  variantId String
+  name      String
+  value     String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+
+  @@index([variantId, name])
+}
+
+model Supplier {
+  id              String           @id @default(cuid())
+  name            String
+  phone           String?
+  email           String?
+  address         String?
+  notes           String?
+  isActive        Boolean          @default(true)
+  purchases       Purchase[]
+  purchaseReturns PurchaseReturn[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([name])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  isActive  Boolean  @default(true)
+  sales     Sale[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+model Purchase {
+  id             String           @id @default(cuid())
+  purchaseNumber String           @unique
+  supplierId     String?
+  supplier       Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  purchasedAt    DateTime         @default(now())
+  status         String           @default("DRAFT")
+  subtotalPaise  Int              @default(0)
+  discountPaise  Int              @default(0)
+  taxPaise       Int              @default(0)
+  shippingPaise  Int              @default(0)
+  totalPaise     Int              @default(0)
+  notes          String?
+  stockSnapshotJson String?
+  items          PurchaseItem[]
+  payments       Payment[]
+  returns        PurchaseReturn[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([supplierId, purchasedAt])
+  @@index([status])
+}
+
+model PurchaseItem {
+  id             String               @id @default(cuid())
+  purchaseId     String
+  variantId      String
+  quantity       Int
+  unitCostPaise  Int
+  lineTotalPaise Int
+  purchase       Purchase             @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  variant        ProductVariant       @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  returnItems    PurchaseReturnItem[]
+  createdAt      DateTime             @default(now())
+
+  @@index([purchaseId])
+  @@index([variantId])
+}
+
+model Sale {
+  id            String       @id @default(cuid())
+  saleNumber    String       @unique
+  customerId    String?
+  customer      Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  soldAt        DateTime     @default(now())
+  status        String       @default("COMPLETED")
+  subtotalPaise Int          @default(0)
+  discountPaise Int          @default(0)
+  taxPaise      Int          @default(0)
+  totalPaise    Int          @default(0)
+  notes         String?
+  items         SaleItem[]
+  payments      Payment[]
+  returns       SaleReturn[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([customerId, soldAt])
+  @@index([status])
+}
+
+model SaleItem {
+  id                    String           @id @default(cuid())
+  saleId                String
+  variantId             String
+  quantity              Int
+  unitSellingPricePaise Int
+  unitCostPaise         Int?
+  discountPaise         Int              @default(0)
+  lineTotalPaise        Int
+  costTotalPaise        Int?
+  grossProfitPaise      Int?
+  sale                  Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  variant               ProductVariant   @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  returnItems           SaleReturnItem[]
+  createdAt             DateTime         @default(now())
+
+  @@index([saleId])
+  @@index([variantId])
+}
+
+model PurchaseReturn {
+  id           String               @id @default(cuid())
+  returnNumber String               @unique
+  purchaseId   String?
+  purchase     Purchase?            @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  supplierId   String?
+  supplier     Supplier?            @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  returnedAt   DateTime             @default(now())
+  status       String               @default("COMPLETED")
+  totalPaise   Int                  @default(0)
+  reason       String?
+  items        PurchaseReturnItem[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([purchaseId])
+  @@index([supplierId, returnedAt])
+}
+
+model PurchaseReturnItem {
+  id                     String         @id @default(cuid())
+  purchaseReturnId       String
+  variantId              String
+  originalPurchaseItemId String?
+  quantity               Int
+  unitCostPaise          Int
+  lineTotalPaise         Int
+  purchaseReturn         PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Restrict)
+  variant                ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  originalPurchaseItem   PurchaseItem?  @relation(fields: [originalPurchaseItemId], references: [id], onDelete: SetNull)
+  createdAt              DateTime       @default(now())
+
+  @@index([purchaseReturnId])
+  @@index([variantId])
+}
+
+model SaleReturn {
+  id           String           @id @default(cuid())
+  returnNumber String           @unique
+  saleId       String
+  sale         Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  returnedAt   DateTime         @default(now())
+  status       String           @default("COMPLETED")
+  totalPaise   Int              @default(0)
+  reason       String?
+  items        SaleReturnItem[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([saleId])
+  @@index([returnedAt])
+}
+
+model SaleReturnItem {
+  id             String         @id @default(cuid())
+  saleReturnId   String
+  saleItemId     String
+  variantId      String
+  quantity       Int
+  unitPricePaise Int
+  unitCostPaise  Int?
+  lineTotalPaise Int
+  saleReturn     SaleReturn     @relation(fields: [saleReturnId], references: [id], onDelete: Restrict)
+  saleItem       SaleItem       @relation(fields: [saleItemId], references: [id], onDelete: Restrict)
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  createdAt      DateTime       @default(now())
+
+  @@index([saleReturnId])
+  @@index([saleItemId])
+  @@index([variantId])
+}
+
+model Payment {
+  id          String    @id @default(cuid())
+  saleId      String?
+  purchaseId  String?
+  sale        Sale?     @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  purchase    Purchase? @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  amountPaise Int
+  method      String    @default("CASH")
+  reference   String?
+  note        String?
+  paidAt      DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@index([saleId, paidAt])
+  @@index([purchaseId, paidAt])
+}
+
+model StockMovement {
+  id             String         @id @default(cuid())
+  variantId      String
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  movementType   String
+  quantityChange Int
+  unitCostPaise  Int?
+  referenceType  String?
+  referenceId    String?
+  note           String?
+  createdAt      DateTime       @default(now())
+
+  @@index([variantId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  action     String
+  beforeJson String?
+  afterJson  String?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}

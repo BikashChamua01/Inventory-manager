@@ -1,0 +1,2746 @@
+
+
+========== prisma\schema.prisma ==========
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id          String             @id @default(cuid())
+  name        String
+  sku         String?            @unique
+  description String?
+  categoryId  String?
+  category    Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  attributes  ProductAttribute[]
+  variants    ProductVariant[]
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([categoryId])
+  @@index([name])
+}
+
+model ProductAttribute {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  value     String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([productId, name])
+}
+
+model ProductVariant {
+  id                  String               @id @default(cuid())
+  productId           String
+  name                String
+  sku                 String?              @unique
+  unit                String               @default("piece")
+  purchasePricePaise  Int                  @default(0)
+  sellingPricePaise   Int                  @default(0)
+  averageCostPaise    Int                  @default(0)
+  averageCostKnown    Boolean              @default(false)
+  stockQuantity       Int                  @default(0)
+  lowStockThreshold   Int                  @default(0)
+  product             Product              @relation(fields: [productId], references: [id], onDelete: Restrict)
+  attributes          VariantAttribute[]
+  stockMovements      StockMovement[]
+  purchaseItems       PurchaseItem[]
+  saleItems           SaleItem[]
+  purchaseReturnItems PurchaseReturnItem[]
+  saleReturnItems     SaleReturnItem[]
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([productId])
+}
+
+model VariantAttribute {
+  id        String         @id @default(cuid())
+  variantId String
+  name      String
+  value     String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+
+  @@index([variantId, name])
+}
+
+model Supplier {
+  id              String           @id @default(cuid())
+  name            String
+  phone           String?
+  email           String?
+  address         String?
+  notes           String?
+  isActive        Boolean          @default(true)
+  purchases       Purchase[]
+  purchaseReturns PurchaseReturn[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([name])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  isActive  Boolean  @default(true)
+  sales     Sale[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+model Purchase {
+  id             String           @id @default(cuid())
+  purchaseNumber String           @unique
+  supplierId     String?
+  supplier       Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  purchasedAt    DateTime         @default(now())
+  status         String           @default("DRAFT")
+  subtotalPaise  Int              @default(0)
+  discountPaise  Int              @default(0)
+  taxPaise       Int              @default(0)
+  shippingPaise  Int              @default(0)
+  totalPaise     Int              @default(0)
+  notes          String?
+  items          PurchaseItem[]
+  payments       Payment[]
+  returns        PurchaseReturn[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([supplierId, purchasedAt])
+  @@index([status])
+}
+
+model PurchaseItem {
+  id             String               @id @default(cuid())
+  purchaseId     String
+  variantId      String
+  quantity       Int
+  unitCostPaise  Int
+  lineTotalPaise Int
+  purchase       Purchase             @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  variant        ProductVariant       @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  returnItems    PurchaseReturnItem[]
+  createdAt      DateTime             @default(now())
+
+  @@index([purchaseId])
+  @@index([variantId])
+}
+
+model Sale {
+  id            String       @id @default(cuid())
+  saleNumber    String       @unique
+  customerId    String?
+  customer      Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  soldAt        DateTime     @default(now())
+  status        String       @default("COMPLETED")
+  subtotalPaise Int          @default(0)
+  discountPaise Int          @default(0)
+  taxPaise      Int          @default(0)
+  totalPaise    Int          @default(0)
+  notes         String?
+  items         SaleItem[]
+  payments      Payment[]
+  returns       SaleReturn[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([customerId, soldAt])
+  @@index([status])
+}
+
+model SaleItem {
+  id                    String           @id @default(cuid())
+  saleId                String
+  variantId             String
+  quantity              Int
+  unitSellingPricePaise Int
+  unitCostPaise         Int?
+  discountPaise         Int              @default(0)
+  lineTotalPaise        Int
+  costTotalPaise        Int?
+  grossProfitPaise      Int?
+  sale                  Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  variant               ProductVariant   @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  returnItems           SaleReturnItem[]
+  createdAt             DateTime         @default(now())
+
+  @@index([saleId])
+  @@index([variantId])
+}
+
+model PurchaseReturn {
+  id           String               @id @default(cuid())
+  returnNumber String               @unique
+  purchaseId   String?
+  purchase     Purchase?            @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  supplierId   String?
+  supplier     Supplier?            @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  returnedAt   DateTime             @default(now())
+  status       String               @default("COMPLETED")
+  totalPaise   Int                  @default(0)
+  reason       String?
+  items        PurchaseReturnItem[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([purchaseId])
+  @@index([supplierId, returnedAt])
+}
+
+model PurchaseReturnItem {
+  id                     String         @id @default(cuid())
+  purchaseReturnId       String
+  variantId              String
+  originalPurchaseItemId String?
+  quantity               Int
+  unitCostPaise          Int
+  lineTotalPaise         Int
+  purchaseReturn         PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Restrict)
+  variant                ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  originalPurchaseItem   PurchaseItem?  @relation(fields: [originalPurchaseItemId], references: [id], onDelete: SetNull)
+  createdAt              DateTime       @default(now())
+
+  @@index([purchaseReturnId])
+  @@index([variantId])
+}
+
+model SaleReturn {
+  id           String           @id @default(cuid())
+  returnNumber String           @unique
+  saleId       String
+  sale         Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  returnedAt   DateTime         @default(now())
+  status       String           @default("COMPLETED")
+  totalPaise   Int              @default(0)
+  reason       String?
+  items        SaleReturnItem[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([saleId])
+  @@index([returnedAt])
+}
+
+model SaleReturnItem {
+  id             String         @id @default(cuid())
+  saleReturnId   String
+  saleItemId     String
+  variantId      String
+  quantity       Int
+  unitPricePaise Int
+  unitCostPaise  Int?
+  lineTotalPaise Int
+  saleReturn     SaleReturn     @relation(fields: [saleReturnId], references: [id], onDelete: Restrict)
+  saleItem       SaleItem       @relation(fields: [saleItemId], references: [id], onDelete: Restrict)
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  createdAt      DateTime       @default(now())
+
+  @@index([saleReturnId])
+  @@index([saleItemId])
+  @@index([variantId])
+}
+
+model Payment {
+  id          String    @id @default(cuid())
+  saleId      String?
+  purchaseId  String?
+  sale        Sale?     @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  purchase    Purchase? @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  amountPaise Int
+  method      String    @default("CASH")
+  reference   String?
+  note        String?
+  paidAt      DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@index([saleId, paidAt])
+  @@index([purchaseId, paidAt])
+}
+
+model StockMovement {
+  id             String         @id @default(cuid())
+  variantId      String
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  movementType   String
+  quantityChange Int
+  unitCostPaise  Int?
+  referenceType  String?
+  referenceId    String?
+  note           String?
+  createdAt      DateTime       @default(now())
+
+  @@index([variantId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  action     String
+  beforeJson String?
+  afterJson  String?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+
+========== package.json ==========
+{
+  "name": "inventory-manager",
+  "version": "1.0.0",
+  "description": "",
+  "main": "electron/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "prisma skills sync || exit 0",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
+    "build": "npm run build:frontend && electron-builder",
+    "build:frontend": "npm --prefix frontend run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "concurrently": "^10.0.6",
+    "cross-env": "^10.1.0",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "prisma": "^7.10.1",
+    "wait-on": "^9.5.1"
+  },
+  "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0"
+  }
+}
+
+
+========== backend\package.json ==========
+[File not found at this path]
+
+
+========== backend\src\app.mjs ==========
+
+import express from "express";
+import cors from "cors";
+
+import productRoutes from "./routes/product.routes.mjs";
+import variantRoutes from "./routes/variant.routes.mjs";
+import categoryRoutes from "./routes/category.routes.mjs";
+import stockRoutes from "./routes/stock.routes.mjs";
+import purchaseRoutes from "./routes/purchase.routes.mjs";
+import saleRoutes from "./routes/sale.routes.mjs";
+import returnRoutes from "./routes/return.routes.mjs";
+import reportRoutes from "./routes/report.routes.mjs";
+
+import {
+     notFoundHandler,
+     errorHandler,
+} from "./middleware/errorHandler.mjs";
+
+const app = express();
+
+app.use(cors());
+app.use(express.json({ limit: "1mb" }));
+
+app.get("/api/health", (req, res) => {
+     res.status(200).json({
+          success: true,
+          message: "Inventory Manager API is running",
+     });
+});
+
+app.use("/api/products", productRoutes);
+app.use("/api", variantRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/stock", stockRoutes);
+app.use("/api/purchases", purchaseRoutes);
+app.use("/api/sales", saleRoutes);
+app.use("/api/returns", returnRoutes);
+app.use("/api/reports", reportRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+export default app;
+
+
+========== backend\src\services\product.service.mjs ==========
+
+import { prisma } from "../config/database.mjs";
+
+function cleanOptionalString(value) {
+     if (value === undefined || value === null) return value;
+     const trimmed = value.trim();
+     return trimmed || null;
+}
+
+function productError(message, statusCode = 400) {
+     const error = new Error(message);
+     error.statusCode = statusCode;
+     return error;
+}
+
+function normalizeAttributes(attributes = []) {
+     return attributes.map((attribute) => ({
+          name: attribute.name.trim(),
+          value: attribute.value,
+     }));
+}
+
+function normalizeVariants(variants = []) {
+     return variants.map((variant) => ({
+          name: variant.name.trim(),
+          sku: cleanOptionalString(variant.sku),
+          unit: variant.unit?.trim() || "piece",
+          purchasePricePaise: variant.purchasePricePaise ?? 0,
+          sellingPricePaise: variant.sellingPricePaise ?? 0,
+          // Initial stock must be recorded through the inventory module.
+          stockQuantity: 0,
+          attributes: {
+               create: normalizeAttributes(variant.attributes),
+          },
+     }));
+}
+
+const productInclude = {
+     category: true,
+     attributes: true,
+     variants: {
+          include: { attributes: true },
+     },
+};
+
+export async function createProduct(data) {
+     if (data.categoryId) {
+          const category = await prisma.category.findUnique({
+               where: { id: data.categoryId },
+          });
+
+          if (!category || !category.isActive) {
+               throw productError("Category not found or inactive", 400);
+          }
+     }
+
+     try {
+          return await prisma.product.create({
+               data: {
+                    name: data.name.trim(),
+                    sku: cleanOptionalString(data.sku),
+                    description: cleanOptionalString(data.description),
+                    categoryId: data.categoryId || null,
+                    attributes: {
+                         create: normalizeAttributes(data.attributes),
+                    },
+                    variants: {
+                         create: normalizeVariants(data.variants),
+                    },
+               },
+               include: productInclude,
+          });
+     } catch (error) {
+          if (error.code === "P2002") {
+               throw productError("Product SKU or variant SKU already exists", 409);
+          }
+          throw error;
+     }
+}
+
+
+export async function listProducts({
+     search,
+     categoryId,
+     includeArchived = false,
+}) {
+     return prisma.product.findMany({
+          where: {
+               ...(includeArchived ? {} : { isActive: true }),
+
+               ...(categoryId ? { categoryId } : {}),
+
+               ...(search
+                    ? {
+                         OR: [
+                              { name: { contains: search } },
+                              { sku: { contains: search } },
+                              {
+                                   attributes: {
+                                        some: { name: { contains: search } },
+                                   },
+                              },
+                              {
+                                   attributes: {
+                                        some: { value: { contains: search } },
+                                   },
+                              },
+                         ],
+                    }
+                    : {}),
+          },
+          include: productInclude,
+          orderBy: { createdAt: "desc" },
+     });
+}
+
+
+export async function getProductById(id) {
+     const product = await prisma.product.findUnique({
+          where: { id },
+          include: productInclude,
+     });
+
+     if (!product) {
+          throw productError("Product not found", 404);
+     }
+
+     return product;
+}
+
+export async function updateProduct(id, data) {
+     const existing = await prisma.product.findUnique({
+          where: { id },
+     });
+
+     if (!existing) {
+          throw productError("Product not found", 404);
+     }
+
+     if (data.categoryId) {
+          const category = await prisma.category.findUnique({
+               where: { id: data.categoryId },
+          });
+
+          if (!category || !category.isActive) {
+               throw productError("Category not found or inactive", 400);
+          }
+     }
+
+     // This first implementation updates product details and attributes.
+     // Variant management and stock changes will have separate operations.
+     const updateData = {};
+
+     for (const field of ["name", "sku", "description", "categoryId", "isActive"]) {
+          if (field in data) {
+               updateData[field] =
+                    field === "name"
+                         ? data.name.trim()
+                         : field === "sku" || field === "description"
+                              ? cleanOptionalString(data[field])
+                              : data[field];
+          }
+     }
+
+     if (data.attributes) {
+          updateData.attributes = {
+               deleteMany: {},
+               create: normalizeAttributes(data.attributes),
+          };
+     }
+
+     try {
+          return await prisma.product.update({
+               where: { id },
+               data: updateData,
+               include: productInclude,
+          });
+     } catch (error) {
+          if (error.code === "P2002") {
+               throw productError("Product SKU already exists", 409);
+          }
+          throw error;
+     }
+}
+
+export async function archiveProduct(id) {
+     const product = await prisma.product.findUnique({
+          where: { id },
+     });
+
+     if (!product) {
+          throw productError("Product not found", 404);
+     }
+
+     return prisma.product.update({
+          where: { id },
+          data: { isActive: false },
+          include: productInclude,
+     });
+}
+
+
+export async function restoreProduct(id) {
+     const product = await prisma.product.findUnique({
+          where: { id },
+     });
+
+     if (!product) {
+          throw productError("Product not found", 404);
+     }
+
+     return prisma.product.update({
+          where: { id },
+          data: { isActive: true },
+          include: productInclude,
+     });
+}
+
+
+
+export async function deleteProduct(id) {
+     const product = await prisma.product.findUnique({
+          where: { id },
+          include: {
+               variants: {
+                    select: {
+                         id: true,
+                         _count: {
+                              select: {
+                                   stockMovements: true,
+                                   purchaseItems: true,
+                                   saleItems: true,
+                                   purchaseReturnItems: true,
+                                   saleReturnItems: true,
+                              },
+                         },
+                    },
+               },
+          },
+     });
+
+     if (!product) {
+          throw productError("Product not found", 404);
+     }
+
+     const auditLogCount = await prisma.auditLog.count({
+          where: {
+               entityType: "Product",
+               entityId: id,
+          },
+     });
+
+     // A product with variants is archived rather than permanently deleted.
+     if (product.variants.length > 0 || auditLogCount > 0) {
+          return {
+               archived: true,
+               product: await archiveProduct(id),
+               message:
+                    "Product has variants or audit history. It was archived to protect inventory and history.",
+          };
+     }
+
+     await prisma.product.delete({
+          where: { id },
+     });
+
+     return {
+          archived: false,
+          message: "Product permanently deleted",
+     };
+}
+
+
+
+========== backend\src\services\variant.service.mjs ==========
+
+import { prisma } from "../config/database.mjs";
+
+function variantError(message, statusCode = 400) {
+     const error = new Error(message);
+     error.statusCode = statusCode;
+     return error;
+}
+
+function cleanOptionalString(value) {
+     if (value === undefined || value === null) return value;
+     return value.trim() || null;
+}
+
+function normalizeAttributes(attributes = []) {
+     return attributes.map((attribute) => ({
+          name: attribute.name.trim(),
+          value: attribute.value,
+     }));
+}
+
+const variantInclude = {
+     attributes: true,
+     product: {
+          select: {
+               id: true,
+               name: true,
+               sku: true,
+               isActive: true,
+          },
+     },
+};
+
+export async function createVariant(productId, data) {
+     const product = await prisma.product.findUnique({
+          where: { id: productId },
+          select: { id: true, isActive: true },
+     });
+
+     if (!product) {
+          throw variantError("Product not found", 404);
+     }
+
+     if (!product.isActive) {
+          throw variantError("Cannot add a variant to an archived product", 400);
+     }
+
+     try {
+          return await prisma.productVariant.create({
+               data: {
+                    productId,
+                    name: data.name.trim(),
+                    sku: cleanOptionalString(data.sku),
+                    unit: data.unit?.trim() || "piece",
+                    purchasePricePaise: data.purchasePricePaise ?? 0,
+                    sellingPricePaise: data.sellingPricePaise ?? 0,
+                    // Stock is managed only by the Inventory module.
+                    stockQuantity: 0,
+                    attributes: {
+                         create: normalizeAttributes(data.attributes),
+                    },
+               },
+               include: variantInclude,
+          });
+     } catch (error) {
+          if (error.code === "P2002") {
+               throw variantError("This SKU is already in use", 409);
+          }
+          throw error;
+     }
+}
+
+export async function getVariantById(id) {
+     const variant = await prisma.productVariant.findUnique({
+          where: { id },
+          include: variantInclude,
+     });
+
+     if (!variant) {
+          throw variantError("Variant not found", 404);
+     }
+
+     return variant;
+}
+
+export async function listVariants(productId, { includeInactive = false } = {}) {
+     const product = await prisma.product.findUnique({
+          where: { id: productId },
+          select: { id: true },
+     });
+
+     if (!product) {
+          throw variantError("Product not found", 404);
+     }
+
+     return prisma.productVariant.findMany({
+          where: {
+               productId,
+               ...(includeInactive ? {} : { isActive: true }),
+          },
+          include: { attributes: true },
+          orderBy: { createdAt: "asc" },
+     });
+}
+
+
+export async function updateVariant(id, data) {
+     const existing = await prisma.productVariant.findUnique({
+          where: { id },
+          select: {
+               id: true,
+               product: {
+                    select: {
+                         isActive: true,
+                    },
+               },
+          },
+     });
+
+     if (!existing) {
+          throw variantError("Variant not found", 404);
+     }
+
+     if (!existing.product.isActive) {
+          throw variantError(
+               "Cannot edit a variant belonging to an archived product. Restore the product first.",
+               409
+          );
+     }
+
+     const updateData = {};
+
+
+     for (const field of [
+          "name",
+          "sku",
+          "unit",
+          "purchasePricePaise",
+          "sellingPricePaise",
+          "isActive",
+     ]) {
+          if (field in data) {
+               updateData[field] =
+                    field === "name"
+                         ? data.name.trim()
+                         : field === "sku" || field === "unit"
+                              ? cleanOptionalString(data[field])
+                              : data[field];
+          }
+     }
+
+     if ("attributes" in data) {
+          updateData.attributes = {
+               deleteMany: {},
+               create: normalizeAttributes(data.attributes),
+          };
+     }
+
+     try {
+          return await prisma.productVariant.update({
+               where: { id },
+               data: updateData,
+               include: variantInclude,
+          });
+     } catch (error) {
+          if (error.code === "P2002") {
+               throw variantError("This SKU is already in use", 409);
+          }
+          throw error;
+     }
+}
+
+
+
+
+
+export async function setVariantActiveStatus(id, isActive) {
+     const existing = await prisma.productVariant.findUnique({
+          where: { id },
+          select: { id: true, product: { select: { isActive: true } } },
+     });
+
+     if (!existing) {
+          throw variantError("Variant not found", 404);
+     }
+
+     if (isActive && !existing.product.isActive) {
+          throw variantError(
+               "Restore the parent product before activating this variant",
+               400
+          );
+     }
+
+     return prisma.productVariant.update({
+          where: { id },
+          data: { isActive },
+          include: variantInclude,
+     });
+}
+
+
+export async function restoreProduct(id) {
+     const product = await prisma.product.findUnique({
+          where: { id },
+     });
+
+     if (!product) {
+          throw productError("Product not found", 404);
+     }
+
+     return prisma.product.update({
+          where: { id },
+          data: { isActive: true },
+          include: productInclude,
+     });
+}
+
+
+export async function deleteVariant(id) {
+     const variant = await prisma.productVariant.findUnique({
+          where: { id },
+          include: {
+               _count: {
+                    select: {
+                         stockMovements: true,
+                         purchaseItems: true,
+                         saleItems: true,
+                         purchaseReturnItems: true,
+                         saleReturnItems: true,
+                    },
+               },
+          },
+     });
+
+     if (!variant) {
+          throw variantError("Variant not found", 404);
+     }
+
+     const hasHistory = Object.values(variant._count).some(
+          (count) => count > 0
+     );
+
+     const auditLogCount = await prisma.auditLog.count({
+          where: {
+               entityType: "ProductVariant",
+               entityId: id,
+          },
+     });
+
+     if (variant.stockQuantity !== 0 || hasHistory || auditLogCount > 0) {
+          throw variantError(
+               "This variant has stock or history and cannot be permanently deleted. Deactivate it instead.",
+               409
+          );
+     }
+
+     await prisma.productVariant.delete({
+          where: { id },
+     });
+
+     return {
+          message: "Variant permanently deleted",
+          id,
+     };
+}
+
+
+
+========== backend\src\services\purchase.service.mjs ==========
+
+import { randomUUID } from "node:crypto";
+import { prisma } from "../config/database.mjs";
+
+function purchaseError(message, statusCode = 400) {
+     const error = new Error(message);
+     error.statusCode = statusCode;
+     return error;
+}
+
+export async function createPurchase(data) {
+     if (!data || typeof data !== "object" || Array.isArray(data)) {
+          throw purchaseError("Request body must be a JSON object");
+     }
+
+     if (!Array.isArray(data.items) || data.items.length === 0) {
+          throw purchaseError("At least one purchase item is required");
+     }
+
+     for (const field of ["discountPaise", "taxPaise", "shippingPaise"]) {
+          const value = data[field] ?? 0;
+
+          if (!Number.isSafeInteger(value) || value < 0) {
+               throw purchaseError(
+                    `${field} must be a non-negative integer in paise`
+               );
+          }
+     }
+
+     const items = data.items.map((item) => {
+          if (
+               !item ||
+               typeof item.variantId !== "string" ||
+               !item.variantId.trim() ||
+               !Number.isSafeInteger(item.quantity) ||
+               item.quantity <= 0 ||
+               !Number.isSafeInteger(item.unitCostPaise) ||
+               item.unitCostPaise < 0
+          ) {
+               throw purchaseError(
+                    "Each item needs a variantId, positive integer quantity, and non-negative unit cost in paise"
+               );
+          }
+
+          const lineTotalPaise = item.quantity * item.unitCostPaise;
+
+          if (!Number.isSafeInteger(lineTotalPaise)) {
+               throw purchaseError("Purchase item total is too large");
+          }
+
+          return {
+               variantId: item.variantId.trim(),
+               quantity: item.quantity,
+               unitCostPaise: item.unitCostPaise,
+               lineTotalPaise,
+          };
+     });
+
+     const subtotalPaise = items.reduce(
+          (sum, item) => sum + item.lineTotalPaise,
+          0
+     );
+
+     const discountPaise = data.discountPaise ?? 0;
+     const taxPaise = data.taxPaise ?? 0;
+     const shippingPaise = data.shippingPaise ?? 0;
+
+     const totalPaise =
+          subtotalPaise - discountPaise + taxPaise + shippingPaise;
+
+     if (
+          !Number.isSafeInteger(subtotalPaise) ||
+          !Number.isSafeInteger(totalPaise) ||
+          totalPaise < 0
+     ) {
+          throw purchaseError("Invalid purchase total");
+     }
+
+     if (
+          data.supplierId != null &&
+          (typeof data.supplierId !== "string" || !data.supplierId.trim())
+     ) {
+          throw purchaseError("supplierId must be a non-empty string or null");
+     }
+
+     if (data.notes != null && typeof data.notes !== "string") {
+          throw purchaseError("notes must be a string");
+     }
+
+     return prisma.$transaction(async (tx) => {
+          if (data.supplierId) {
+               const supplier = await tx.supplier.findUnique({
+                    where: { id: data.supplierId.trim() },
+                    select: { id: true },
+               });
+
+               if (!supplier) {
+                    throw purchaseError("Supplier not found", 404);
+               }
+          }
+
+          // Validate every variant before creating the purchase.
+          const variantIds = [...new Set(items.map((item) => item.variantId))];
+
+          for (const variantId of variantIds) {
+               const variant = await tx.productVariant.findUnique({
+                    where: { id: variantId },
+                    select: {
+                         id: true,
+                         isActive: true,
+                         product: { select: { isActive: true } },
+                    },
+               });
+
+               if (!variant) {
+                    throw purchaseError(`Variant not found: ${variantId}`, 404);
+               }
+
+               if (!variant.isActive || !variant.product.isActive) {
+                    throw purchaseError(
+                         "Cannot purchase an inactive variant or archived product",
+                         409
+                    );
+               }
+          }
+
+          const purchase = await tx.purchase.create({
+               data: {
+                    purchaseNumber: `PUR-${randomUUID()}`,
+                    supplierId: data.supplierId?.trim() || null,
+                    subtotalPaise,
+                    discountPaise,
+                    taxPaise,
+                    shippingPaise,
+                    totalPaise,
+                    notes: data.notes?.trim() || null,
+                    status: "COMPLETED",
+                    items: {
+                         create: items,
+                    },
+               },
+               include: { items: true },
+          });
+
+          // Update stock, average cost, and stock movement atomically.
+          for (const item of items) {
+               const variant = await tx.productVariant.findUnique({
+                    where: { id: item.variantId },
+                    select: {
+                         stockQuantity: true,
+                         averageCostPaise: true,
+                         averageCostKnown: true,
+                    },
+               });
+
+               if (!variant) {
+                    throw purchaseError(`Variant not found: ${item.variantId}`, 404);
+               }
+
+               const oldQuantity = variant.stockQuantity;
+               const newQuantity = oldQuantity + item.quantity;
+
+               if (!Number.isSafeInteger(newQuantity)) {
+                    throw purchaseError("Stock quantity is too large");
+               }
+
+               let newAverageCost;
+               let newAverageCostKnown;
+
+               if (oldQuantity === 0) {
+                    newAverageCost = item.unitCostPaise;
+                    newAverageCostKnown = true;
+               } else if (variant.averageCostKnown) {
+                    newAverageCost = Math.round(
+                         (
+                              oldQuantity * variant.averageCostPaise +
+                              item.quantity * item.unitCostPaise
+                         ) / newQuantity
+                    );
+                    newAverageCostKnown = true;
+               } else {
+                    // Existing stock cost is unknown; don't guess.
+                    newAverageCost = variant.averageCostPaise;
+                    newAverageCostKnown = false;
+               }
+
+               await tx.productVariant.update({
+                    where: { id: item.variantId },
+                    data: {
+                         stockQuantity: newQuantity,
+                         purchasePricePaise: item.unitCostPaise,
+                         averageCostPaise: newAverageCost,
+                         averageCostKnown: newAverageCostKnown,
+                    },
+               });
+
+               await tx.stockMovement.create({
+                    data: {
+                         variantId: item.variantId,
+                         movementType: "PURCHASE",
+                         quantityChange: item.quantity,
+                         unitCostPaise: item.unitCostPaise,
+                         referenceType: "Purchase",
+                         referenceId: purchase.id,
+                         note: `Purchase ${purchase.purchaseNumber}`,
+                    },
+               });
+          }
+
+          return purchase;
+     });
+}
+
+export async function listPurchases() {
+     return prisma.purchase.findMany({
+          include: {
+               items: {
+                    include: {
+                         variant: {
+                              select: {
+                                   id: true,
+                                   name: true,
+                                   sku: true,
+                                   product: {
+                                        select: {
+                                             id: true,
+                                             name: true,
+                                        },
+                                   },
+                              },
+                         },
+                    },
+               },
+               supplier: true,
+          },
+          orderBy: {
+               purchasedAt: "desc",
+          },
+     });
+}
+
+
+========== backend\src\services\sale.service.mjs ==========
+
+import { randomUUID } from "node:crypto";
+import { prisma } from "../config/database.mjs";
+
+function saleError(message, statusCode = 400) {
+     const error = new Error(message);
+     error.statusCode = statusCode;
+     return error;
+}
+
+export async function createSale(data) {
+     if (!data || typeof data !== "object" || Array.isArray(data)) {
+          throw saleError("Request body must be a JSON object");
+     }
+
+     if (!Array.isArray(data.items) || data.items.length === 0) {
+          throw saleError("At least one sale item is required");
+     }
+
+     const items = data.items.map((item) => {
+          if (
+               !item ||
+               typeof item.variantId !== "string" ||
+               !item.variantId.trim() ||
+               !Number.isSafeInteger(item.quantity) ||
+               item.quantity <= 0
+          ) {
+               throw saleError(
+                    "Each item needs a variantId and a positive integer quantity"
+               );
+          }
+
+          if (
+               item.unitSellingPricePaise !== undefined &&
+               (!Number.isSafeInteger(item.unitSellingPricePaise) ||
+                    item.unitSellingPricePaise < 0)
+          ) {
+               throw saleError(
+                    "Selling price must be a non-negative integer in paise"
+               );
+          }
+
+          if (
+               item.discountPaise !== undefined &&
+               (!Number.isSafeInteger(item.discountPaise) ||
+                    item.discountPaise < 0)
+          ) {
+               throw saleError(
+                    "Discount must be a non-negative integer in paise"
+               );
+          }
+
+          return {
+               variantId: item.variantId.trim(),
+               quantity: item.quantity,
+               unitSellingPricePaise: item.unitSellingPricePaise,
+               discountPaise: item.discountPaise ?? 0,
+          };
+     });
+
+     if (data.notes != null && typeof data.notes !== "string") {
+          throw saleError("notes must be a string");
+     }
+
+     return prisma.$transaction(async (tx) => {
+          if (data.customerId != null) {
+               if (
+                    typeof data.customerId !== "string" ||
+                    !data.customerId.trim()
+               ) {
+                    throw saleError("customerId must be a non-empty string or null");
+               }
+
+               const customer = await tx.customer.findUnique({
+                    where: { id: data.customerId.trim() },
+                    select: { id: true },
+               });
+
+               if (!customer) {
+                    throw saleError("Customer not found", 404);
+               }
+          }
+
+          const saleItems = [];
+
+          // Validate stock and calculate sale amounts before changing stock.
+          for (const item of items) {
+               const variant = await tx.productVariant.findUnique({
+                    where: { id: item.variantId },
+                    select: {
+                         id: true,
+                         name: true,
+                         stockQuantity: true,
+                         sellingPricePaise: true,
+                         averageCostPaise: true,
+                         averageCostKnown: true,
+                         isActive: true,
+                         product: {
+                              select: { isActive: true },
+                         },
+                    },
+               });
+
+               if (!variant) {
+                    throw saleError(`Variant not found: ${item.variantId}`, 404);
+               }
+
+               if (!variant.isActive || !variant.product.isActive) {
+                    throw saleError(
+                         "Cannot sell an inactive variant or archived product",
+                         409
+                    );
+               }
+
+               if (variant.stockQuantity < item.quantity) {
+                    throw saleError(
+                         `Insufficient stock for ${variant.name}. Available: ${variant.stockQuantity}`,
+                         409
+                    );
+               }
+
+               const unitSellingPricePaise =
+                    item.unitSellingPricePaise ?? variant.sellingPricePaise;
+
+               // Unknown inventory cost must not be reported as zero cost.
+               const unitCostPaise = variant.averageCostKnown
+                    ? variant.averageCostPaise
+                    : null;
+
+               const grossLineTotal =
+                    item.quantity * unitSellingPricePaise;
+
+               const costTotalPaise =
+                    unitCostPaise === null
+                         ? null
+                         : item.quantity * unitCostPaise;
+
+               if (
+                    !Number.isSafeInteger(grossLineTotal) ||
+                    (costTotalPaise !== null &&
+                         !Number.isSafeInteger(costTotalPaise))
+               ) {
+                    throw saleError("Sale amount is too large");
+               }
+
+               const discountPaise = item.discountPaise;
+
+               if (discountPaise > grossLineTotal) {
+                    throw saleError(
+                         "Item discount cannot exceed its selling amount"
+                    );
+               }
+
+               const lineTotalPaise = grossLineTotal - discountPaise;
+
+               const grossProfitPaise =
+                    costTotalPaise === null
+                         ? null
+                         : lineTotalPaise - costTotalPaise;
+
+               saleItems.push({
+                    variantId: item.variantId,
+                    quantity: item.quantity,
+                    unitSellingPricePaise,
+                    unitCostPaise,
+                    discountPaise,
+                    lineTotalPaise,
+                    costTotalPaise,
+                    grossProfitPaise,
+               });
+          }
+
+          const subtotalPaise = saleItems.reduce(
+               (sum, item) => sum + item.lineTotalPaise,
+               0
+          );
+
+          if (!Number.isSafeInteger(subtotalPaise)) {
+               throw saleError("Sale total is too large");
+          }
+
+          const sale = await tx.sale.create({
+               data: {
+                    saleNumber: `SALE-${randomUUID()}`,
+                    customerId: data.customerId?.trim() || null,
+                    subtotalPaise,
+                    totalPaise: subtotalPaise,
+                    notes: data.notes?.trim() || null,
+                    status: "COMPLETED",
+                    items: {
+                         create: saleItems,
+                    },
+               },
+               include: { items: true },
+          });
+
+          // Reduce stock and record each movement.
+          for (const item of saleItems) {
+               await tx.productVariant.update({
+                    where: { id: item.variantId },
+                    data: {
+                         stockQuantity: {
+                              decrement: item.quantity,
+                         },
+                    },
+               });
+
+               await tx.stockMovement.create({
+                    data: {
+                         variantId: item.variantId,
+                         movementType: "SALE",
+                         quantityChange: -item.quantity,
+                         unitCostPaise: item.unitCostPaise,
+                         referenceType: "Sale",
+                         referenceId: sale.id,
+                         note: `Sale ${sale.saleNumber}`,
+                    },
+               });
+          }
+
+          return sale;
+     });
+}
+
+export async function listSales() {
+     return prisma.sale.findMany({
+          include: {
+               items: {
+                    include: {
+                         variant: {
+                              select: {
+                                   id: true,
+                                   name: true,
+                                   sku: true,
+                                   product: {
+                                        select: {
+                                             id: true,
+                                             name: true,
+                                        },
+                                   },
+                              },
+                         },
+                    },
+               },
+               customer: true,
+          },
+          orderBy: {
+               soldAt: "desc",
+          },
+     });
+}
+
+
+========== backend\src\services\return.service.mjs ==========
+
+import { randomUUID } from "node:crypto";
+import { prisma } from "../config/database.mjs";
+
+function returnError(message, statusCode = 400) {
+     const error = new Error(message);
+     error.statusCode = statusCode;
+     return error;
+}
+
+function validateReturnRequest(data, type) {
+     if (!data || typeof data !== "object" || Array.isArray(data)) {
+          throw returnError("Request body must be a JSON object");
+     }
+
+     const referenceField = type === "SALE" ? "saleId" : "purchaseId";
+
+     if (
+          typeof data[referenceField] !== "string" ||
+          !data[referenceField].trim()
+     ) {
+          throw returnError(`${referenceField} is required`);
+     }
+
+     if (!Array.isArray(data.items) || data.items.length === 0) {
+          throw returnError("At least one return item is required");
+     }
+
+     if (data.reason != null && typeof data.reason !== "string") {
+          throw returnError("Reason must be a string");
+     }
+
+     const itemReferenceField =
+          type === "SALE" ? "saleItemId" : "originalPurchaseItemId";
+
+     const seen = new Set();
+
+     const items = data.items.map((item) => {
+          if (
+               !item ||
+               typeof item[itemReferenceField] !== "string" ||
+               !item[itemReferenceField].trim() ||
+               !Number.isSafeInteger(item.quantity) ||
+               item.quantity <= 0
+          ) {
+               throw returnError(
+                    `Each item requires ${itemReferenceField} and a positive integer quantity`
+               );
+          }
+
+          const referenceId = item[itemReferenceField].trim();
+
+          if (seen.has(referenceId)) {
+               throw returnError("Duplicate return items are not allowed");
+          }
+
+          seen.add(referenceId);
+
+          return {
+               referenceId,
+               quantity: item.quantity,
+          };
+     });
+
+     return {
+          referenceId: data[referenceField].trim(),
+          reason: data.reason?.trim() || null,
+          items,
+     };
+}
+
+function ensureSafeAmount(value, message = "Return amount is too large") {
+     if (!Number.isSafeInteger(value) || value < 0) {
+          throw returnError(message);
+     }
+
+     return value;
+}
+
+export async function createSaleReturn(data) {
+     const request = validateReturnRequest(data, "SALE");
+
+     return prisma.$transaction(async (tx) => {
+          const sale = await tx.sale.findUnique({
+               where: { id: request.referenceId },
+               include: { items: true },
+          });
+
+          if (!sale) {
+               throw returnError("Sale not found", 404);
+          }
+
+          if (sale.status !== "COMPLETED") {
+               throw returnError("Only completed sales can be returned", 409);
+          }
+
+          const returnItems = [];
+          let totalPaise = 0;
+
+          for (const requested of request.items) {
+               const saleItem = sale.items.find(
+                    (item) => item.id === requested.referenceId
+               );
+
+               if (!saleItem) {
+                    throw returnError(
+                         `Sale item not found: ${requested.referenceId}`,
+                         404
+                    );
+               }
+
+               const previousReturns = await tx.saleReturnItem.aggregate({
+                    where: { saleItemId: saleItem.id },
+                    _sum: { quantity: true },
+               });
+
+               const alreadyReturned = previousReturns._sum.quantity ?? 0;
+               const remainingQuantity = saleItem.quantity - alreadyReturned;
+
+               if (requested.quantity > remainingQuantity) {
+                    throw returnError(
+                         `Cannot return more than the remaining sold quantity. Available to return: ${remainingQuantity}`,
+                         409
+                    );
+               }
+
+               const variant = await tx.productVariant.findUnique({
+                    where: { id: saleItem.variantId },
+                    select: { id: true, stockQuantity: true },
+               });
+
+               if (!variant) {
+                    throw returnError("Product variant not found", 404);
+               }
+
+               const newQuantity = variant.stockQuantity + requested.quantity;
+
+               if (!Number.isSafeInteger(newQuantity)) {
+                    throw returnError("Stock quantity is too large");
+               }
+
+               // Refund the proportional amount after the original item discount.
+               const lineTotalPaise = ensureSafeAmount(
+                    Math.round(
+                         (saleItem.lineTotalPaise * requested.quantity) /
+                         saleItem.quantity
+                    )
+               );
+
+               const costTotalPaise = ensureSafeAmount(
+                    saleItem.unitCostPaise * requested.quantity
+               );
+
+               const itemTotal = totalPaise + lineTotalPaise;
+
+               ensureSafeAmount(itemTotal);
+
+               totalPaise = itemTotal;
+
+               returnItems.push({
+                    saleItemId: saleItem.id,
+                    variantId: saleItem.variantId,
+                    quantity: requested.quantity,
+                    unitPricePaise: saleItem.unitSellingPricePaise,
+                    unitCostPaise: saleItem.unitCostPaise,
+                    lineTotalPaise,
+               });
+          }
+
+          const created = await tx.saleReturn.create({
+               data: {
+                    returnNumber: `SRET-${randomUUID()}`,
+                    saleId: sale.id,
+                    status: "COMPLETED",
+                    totalPaise,
+                    reason: request.reason,
+                    items: {
+                         create: returnItems,
+                    },
+               },
+               include: { items: true },
+          });
+
+          for (const item of returnItems) {
+               await tx.productVariant.update({
+                    where: { id: item.variantId },
+                    data: {
+                         stockQuantity: { increment: item.quantity },
+                    },
+               });
+
+               await tx.stockMovement.create({
+                    data: {
+                         variantId: item.variantId,
+                         movementType: "SALE_RETURN",
+                         quantityChange: item.quantity,
+                         unitCostPaise: item.unitCostPaise,
+                         referenceType: "SALE_RETURN",
+                         referenceId: created.id,
+                         note: `Sales return ${created.returnNumber}`,
+                    },
+               });
+          }
+
+          return created;
+     });
+}
+
+export async function createPurchaseReturn(data) {
+     const request = validateReturnRequest(data, "PURCHASE");
+
+     return prisma.$transaction(async (tx) => {
+          const purchase = await tx.purchase.findUnique({
+               where: { id: request.referenceId },
+               include: { items: true },
+          });
+
+          if (!purchase) {
+               throw returnError("Purchase not found", 404);
+          }
+
+          if (purchase.status !== "COMPLETED") {
+               throw returnError(
+                    "Only completed purchases can be returned",
+                    409
+               );
+          }
+
+          const returnItems = [];
+          let totalPaise = 0;
+
+          for (const requested of request.items) {
+               const purchaseItem = purchase.items.find(
+                    (item) => item.id === requested.referenceId
+               );
+
+               if (!purchaseItem) {
+                    throw returnError(
+                         `Purchase item not found: ${requested.referenceId}`,
+                         404
+                    );
+               }
+
+               const previousReturns = await tx.purchaseReturnItem.aggregate({
+                    where: { originalPurchaseItemId: purchaseItem.id },
+                    _sum: { quantity: true },
+               });
+
+               const alreadyReturned = previousReturns._sum.quantity ?? 0;
+               const remainingQuantity = purchaseItem.quantity - alreadyReturned;
+
+               if (requested.quantity > remainingQuantity) {
+                    throw returnError(
+                         `Cannot return more than the remaining purchased quantity. Available to return: ${remainingQuantity}`,
+                         409
+                    );
+               }
+
+               const variant = await tx.productVariant.findUnique({
+                    where: { id: purchaseItem.variantId },
+                    select: {
+                         id: true,
+                         stockQuantity: true,
+                    },
+               });
+
+               if (!variant) {
+                    throw returnError("Product variant not found", 404);
+               }
+
+               if (requested.quantity > variant.stockQuantity) {
+                    throw returnError(
+                         `Insufficient stock to return this item. Available: ${variant.stockQuantity}`,
+                         409
+                    );
+               }
+
+               const lineTotalPaise = ensureSafeAmount(
+                    requested.quantity * purchaseItem.unitCostPaise
+               );
+
+               const itemTotal = totalPaise + lineTotalPaise;
+               ensureSafeAmount(itemTotal);
+
+               totalPaise = itemTotal;
+
+               returnItems.push({
+                    originalPurchaseItemId: purchaseItem.id,
+                    variantId: purchaseItem.variantId,
+                    quantity: requested.quantity,
+                    unitCostPaise: purchaseItem.unitCostPaise,
+                    lineTotalPaise,
+               });
+          }
+
+          const created = await tx.purchaseReturn.create({
+               data: {
+                    returnNumber: `PRET-${randomUUID()}`,
+                    purchaseId: purchase.id,
+                    supplierId: purchase.supplierId,
+                    status: "COMPLETED",
+                    totalPaise,
+                    reason: request.reason,
+                    items: {
+                         create: returnItems,
+                    },
+               },
+               include: { items: true },
+          });
+
+          for (const item of returnItems) {
+               await tx.productVariant.update({
+                    where: { id: item.variantId },
+                    data: {
+                         stockQuantity: { decrement: item.quantity },
+                    },
+               });
+
+               await tx.stockMovement.create({
+                    data: {
+                         variantId: item.variantId,
+                         movementType: "PURCHASE_RETURN",
+                         quantityChange: -item.quantity,
+                         unitCostPaise: item.unitCostPaise,
+                         referenceType: "PURCHASE_RETURN",
+                         referenceId: created.id,
+                         note: `Purchase return ${created.returnNumber}`,
+                    },
+               });
+          }
+
+          return created;
+     });
+}
+
+export async function listSaleReturns() {
+     return prisma.saleReturn.findMany({
+          include: {
+               sale: {
+                    select: {
+                         id: true,
+                         saleNumber: true,
+                         soldAt: true,
+                    },
+               },
+               items: {
+                    include: {
+                         variant: {
+                              select: {
+                                   id: true,
+                                   name: true,
+                                   sku: true,
+                                   product: {
+                                        select: {
+                                             id: true,
+                                             name: true,
+                                        },
+                                   },
+                              },
+                         },
+                         saleItem: true,
+                    },
+               },
+          },
+          orderBy: { returnedAt: "desc" },
+     });
+}
+
+export async function listPurchaseReturns() {
+     return prisma.purchaseReturn.findMany({
+          include: {
+               purchase: {
+                    select: {
+                         id: true,
+                         purchaseNumber: true,
+                         purchasedAt: true,
+                    },
+               },
+               supplier: true,
+               items: {
+                    include: {
+                         variant: {
+                              select: {
+                                   id: true,
+                                   name: true,
+                                   sku: true,
+                                   product: {
+                                        select: {
+                                             id: true,
+                                             name: true,
+                                        },
+                                   },
+                              },
+                         },
+                         originalPurchaseItem: true,
+                    },
+               },
+          },
+          orderBy: { returnedAt: "desc" },
+     });
+}
+
+
+========== backend\src\services\stock.service.mjs ==========
+
+import { prisma } from "../config/database.mjs";
+
+function stockError(message, statusCode = 400) {
+     const error = new Error(message);
+     error.statusCode = statusCode;
+     return error;
+}
+
+// Add or remove stock and record the change together.
+export async function adjustStock(variantId, quantityChange, note = "") {
+     if (!Number.isSafeInteger(quantityChange) || quantityChange === 0) {
+          throw stockError("Quantity change must be a non-zero integer");
+     }
+
+     return prisma.$transaction(async (tx) => {
+          const variant = await tx.productVariant.findUnique({
+               where: { id: variantId },
+               select: {
+                    id: true,
+                    stockQuantity: true,
+                    isActive: true,
+                    product: { select: { isActive: true } },
+               },
+          });
+
+          if (!variant) {
+               throw stockError("Variant not found", 404);
+          }
+
+          if (!variant.isActive || !variant.product.isActive) {
+               throw stockError("Cannot adjust stock for an inactive variant or archived product", 409);
+          }
+
+          const newQuantity = variant.stockQuantity + quantityChange;
+
+          if (newQuantity < 0) {
+               throw stockError("Insufficient stock", 409);
+          }
+
+          await tx.productVariant.update({
+               where: { id: variantId },
+               data: { stockQuantity: newQuantity },
+          });
+
+          await tx.stockMovement.create({
+               data: {
+                    variantId,
+                    movementType: "ADJUSTMENT",
+                    quantityChange,
+                    note: note.trim() || null,
+               },
+          });
+
+          return {
+               variantId,
+               previousQuantity: variant.stockQuantity,
+               quantityChange,
+               currentQuantity: newQuantity,
+          };
+     });
+}
+
+// View the history of stock changes.
+export async function getStockHistory(variantId) {
+     const variant = await prisma.productVariant.findUnique({
+          where: { id: variantId },
+          select: { id: true },
+     });
+
+     if (!variant) {
+          throw stockError("Variant not found", 404);
+     }
+
+     return prisma.stockMovement.findMany({
+          where: { variantId },
+          orderBy: { createdAt: "desc" },
+     });
+}
+
+
+========== backend\src\services\report.service.mjs ==========
+
+import { prisma } from "../config/database.mjs";
+
+export async function getStockReport() {
+     const variants = await prisma.productVariant.findMany({
+          where: {
+               product: {
+                    isActive: true,
+               },
+          },
+          include: {
+               product: {
+                    select: {
+                         id: true,
+                         name: true,
+                         sku: true,
+                         category: {
+                              select: {
+                                   id: true,
+                                   name: true,
+                              },
+                         },
+                    },
+               },
+               attributes: {
+                    select: {
+                         name: true,
+                         value: true,
+                    },
+                    orderBy: {
+                         name: "asc",
+                    },
+               },
+          },
+          orderBy: [
+               {
+                    product: {
+                         name: "asc",
+                    },
+               },
+               {
+                    name: "asc",
+               },
+          ],
+     });
+
+     const items = variants.map((variant) => ({
+          variantId: variant.id,
+          productId: variant.productId,
+          productName: variant.product.name,
+          productSku: variant.product.sku,
+          category: variant.product.category?.name ?? null,
+          variantName: variant.name,
+          sku: variant.sku,
+          unit: variant.unit,
+          attributes: variant.attributes,
+          stockQuantity: variant.stockQuantity,
+          lowStockThreshold: variant.lowStockThreshold,
+          isLowStock:
+               variant.lowStockThreshold > 0 &&
+               variant.stockQuantity <= variant.lowStockThreshold,
+          purchasePricePaise: variant.purchasePricePaise,
+          sellingPricePaise: variant.sellingPricePaise,
+          averageCostPaise: variant.averageCostPaise,
+          averageCostKnown: variant.averageCostKnown,
+          stockValueAtAverageCostPaise: variant.averageCostKnown
+               ? variant.stockQuantity * variant.averageCostPaise
+               : null,
+          isActive: variant.isActive,
+     }));
+
+     return {
+          items,
+          summary: {
+               totalVariants: items.length,
+               totalStockUnits: items.reduce(
+                    (sum, item) => sum + item.stockQuantity,
+                    0
+               ),
+               lowStockVariants: items.filter((item) => item.isLowStock).length,
+               unknownCostVariants: items.filter(
+                    (item) => !item.averageCostKnown
+               ).length,
+          },
+     };
+}
+
+
+export async function getSalesReport({ from, to } = {}) {
+     const dateFilter = {};
+
+     if (from || to) {
+          dateFilter.gte = from ? new Date(from) : undefined;
+          dateFilter.lte = to ? new Date(to) : undefined;
+
+          if (
+               (from && Number.isNaN(dateFilter.gte.getTime())) ||
+               (to && Number.isNaN(dateFilter.lte.getTime()))
+          ) {
+               const error = new Error("Invalid date filter");
+               error.statusCode = 400;
+               throw error;
+          }
+
+          if (from && to && dateFilter.gte > dateFilter.lte) {
+               const error = new Error("'from' must not be later than 'to'");
+               error.statusCode = 400;
+               throw error;
+          }
+     }
+
+     const sales = await prisma.sale.findMany({
+          where: {
+               status: "COMPLETED",
+               ...(from || to ? { soldAt: dateFilter } : {}),
+          },
+          include: {
+               items: true,
+               returns: {
+                    where: {
+                         status: "COMPLETED",
+                         ...(from || to ? { returnedAt: dateFilter } : {}),
+                    },
+                    include: {
+                         items: true,
+                    },
+               },
+          },
+          orderBy: {
+               soldAt: "desc",
+          },
+     });
+
+     const saleCount = sales.length;
+
+     const grossSalesPaise = sales.reduce(
+          (sum, sale) => sum + sale.totalPaise,
+          0
+     );
+
+     const discountPaise = sales.reduce(
+          (sum, sale) => sum + sale.discountPaise,
+          0
+     );
+
+     const unitsSold = sales.reduce(
+          (sum, sale) =>
+               sum +
+               sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
+          0
+     );
+
+     const salesReturnsPaise = sales.reduce(
+          (sum, sale) =>
+               sum +
+               sale.returns.reduce((returnSum, saleReturn) => {
+                    return (
+                         returnSum +
+                         saleReturn.items.reduce(
+                              (itemSum, item) => itemSum + item.lineTotalPaise,
+                              0
+                         )
+                    );
+               }, 0),
+          0
+     );
+
+     const unitsReturned = sales.reduce(
+          (sum, sale) =>
+               sum +
+               sale.returns.reduce(
+                    (returnSum, saleReturn) =>
+                         returnSum +
+                         saleReturn.items.reduce(
+                              (itemSum, item) => itemSum + item.quantity,
+                              0
+                         ),
+                    0
+               ),
+          0
+     );
+
+     return {
+          filters: {
+               from: from ?? null,
+               to: to ?? null,
+          },
+          summary: {
+               saleCount,
+               unitsSold,
+               unitsReturned,
+               grossSalesPaise,
+               discountPaise,
+               salesReturnsPaise,
+               netSalesPaise: grossSalesPaise - salesReturnsPaise,
+          },
+          sales: sales.map((sale) => ({
+               id: sale.id,
+               saleNumber: sale.saleNumber,
+               soldAt: sale.soldAt,
+               totalPaise: sale.totalPaise,
+               discountPaise: sale.discountPaise,
+               returnedPaise: sale.returns.reduce(
+                    (sum, saleReturn) =>
+                         sum +
+                         saleReturn.items.reduce(
+                              (itemSum, item) => itemSum + item.lineTotalPaise,
+                              0
+                         ),
+                    0
+               ),
+               items: sale.items,
+          })),
+     };
+}
+
+
+
+export async function getPurchasesReport({ from, to } = {}) {
+     const dateFilter = {};
+
+     if (from || to) {
+          if (from) {
+               dateFilter.gte = new Date(from);
+          }
+
+          if (to) {
+               dateFilter.lte = new Date(to);
+          }
+
+          if (
+               (from && Number.isNaN(dateFilter.gte.getTime())) ||
+               (to && Number.isNaN(dateFilter.lte.getTime()))
+          ) {
+               const error = new Error("Invalid date filter");
+               error.statusCode = 400;
+               throw error;
+          }
+
+          if (from && to && dateFilter.gte > dateFilter.lte) {
+               const error = new Error("'from' must not be later than 'to'");
+               error.statusCode = 400;
+               throw error;
+          }
+     }
+
+     const purchases = await prisma.purchase.findMany({
+          where: {
+               status: "COMPLETED",
+               ...(from || to ? { purchasedAt: dateFilter } : {}),
+          },
+          include: {
+               items: true,
+               supplier: {
+                    select: {
+                         id: true,
+                         name: true,
+                    },
+               },
+               returns: {
+                    where: {
+                         status: "COMPLETED",
+                    },
+                    include: {
+                         items: true,
+                    },
+               },
+          },
+          orderBy: {
+               purchasedAt: "desc",
+          },
+     });
+
+     const purchaseCount = purchases.length;
+
+     const grossPurchasesPaise = purchases.reduce(
+          (sum, purchase) => sum + purchase.totalPaise,
+          0
+     );
+
+     const unitsPurchased = purchases.reduce(
+          (sum, purchase) =>
+               sum +
+               purchase.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
+          0
+     );
+
+     const purchaseReturnsPaise = purchases.reduce(
+          (sum, purchase) =>
+               sum +
+               purchase.returns.reduce(
+                    (returnSum, purchaseReturn) =>
+                         returnSum + purchaseReturn.totalPaise,
+                    0
+               ),
+          0
+     );
+
+     const unitsReturned = purchases.reduce(
+          (sum, purchase) =>
+               sum +
+               purchase.returns.reduce(
+                    (returnSum, purchaseReturn) =>
+                         returnSum +
+                         purchaseReturn.items.reduce(
+                              (itemSum, item) => itemSum + item.quantity,
+                              0
+                         ),
+                    0
+               ),
+          0
+     );
+
+     return {
+          filters: {
+               from: from ?? null,
+               to: to ?? null,
+          },
+          summary: {
+               purchaseCount,
+               unitsPurchased,
+               unitsReturned,
+               grossPurchasesPaise,
+               discountPaise: purchases.reduce(
+                    (sum, purchase) => sum + purchase.discountPaise,
+                    0
+               ),
+               purchaseReturnsPaise,
+               netPurchasesPaise: grossPurchasesPaise - purchaseReturnsPaise,
+          },
+          purchases: purchases.map((purchase) => ({
+               id: purchase.id,
+               purchaseNumber: purchase.purchaseNumber,
+               purchasedAt: purchase.purchasedAt,
+               supplier: purchase.supplier,
+               totalPaise: purchase.totalPaise,
+               discountPaise: purchase.discountPaise,
+               returnedPaise: purchase.returns.reduce(
+                    (sum, purchaseReturn) => sum + purchaseReturn.totalPaise,
+                    0
+               ),
+               items: purchase.items,
+          })),
+     };
+}
+
+
+
+export async function getProfitReport({ from, to } = {}) {
+     const dateFilter = {};
+
+     if (from) dateFilter.gte = new Date(from);
+     if (to) dateFilter.lte = new Date(to);
+
+     if (
+          (from && Number.isNaN(dateFilter.gte.getTime())) ||
+          (to && Number.isNaN(dateFilter.lte.getTime()))
+     ) {
+          const error = new Error("Invalid date filter");
+          error.statusCode = 400;
+          throw error;
+     }
+
+     if (from && to && dateFilter.gte > dateFilter.lte) {
+          const error = new Error("'from' must not be later than 'to'");
+          error.statusCode = 400;
+          throw error;
+     }
+
+     const sales = await prisma.sale.findMany({
+          where: {
+               status: "COMPLETED",
+               ...(from || to ? { soldAt: dateFilter } : {}),
+          },
+          include: {
+               items: {
+                    include: {
+                         variant: {
+                              select: {
+                                   averageCostPaise: true,
+                                   averageCostKnown: true,
+                              },
+                         },
+                    },
+               },
+               returns: {
+                    where: {
+                         status: "COMPLETED",
+                         ...(from || to ? { returnedAt: dateFilter } : {}),
+                    },
+                    include: { items: true },
+               },
+          },
+     });
+
+     let netSalesPaise = 0;
+     let knownCostOfGoodsSoldPaise = 0;
+     let knownGrossProfitPaise = 0;
+     let salesWithUnknownCost = 0;
+     let unitsWithUnknownCost = 0;
+     let returnedUnits = 0;
+     let unknownCostReturnedUnits = 0;
+
+     for (const sale of sales) {
+          const returnedQuantityByItem = new Map();
+          const returnedRevenueByItem = new Map();
+
+          for (const saleReturn of sale.returns) {
+               for (const returnItem of saleReturn.items) {
+                    const id = returnItem.saleItemId;
+
+                    returnedQuantityByItem.set(
+                         id,
+                         (returnedQuantityByItem.get(id) ?? 0) + returnItem.quantity
+                    );
+
+                    returnedRevenueByItem.set(
+                         id,
+                         (returnedRevenueByItem.get(id) ?? 0) + returnItem.lineTotalPaise
+                    );
+               }
+          }
+
+          for (const item of sale.items) {
+               const returnedQuantity = returnedQuantityByItem.get(item.id) ?? 0;
+               const returnedRevenue = returnedRevenueByItem.get(item.id) ?? 0;
+               const netQuantity = item.quantity - returnedQuantity;
+               const netRevenue = item.lineTotalPaise - returnedRevenue;
+
+               netSalesPaise += netRevenue;
+               returnedUnits += returnedQuantity;
+
+
+               const recordedCostIsValid =
+                    item.unitCostPaise !== null &&
+                    item.unitCostPaise !== undefined &&
+                    Number.isInteger(item.unitCostPaise) &&
+                    item.unitCostPaise >= 0 &&
+                    item.costTotalPaise !== null &&
+                    item.costTotalPaise !== undefined &&
+                    Number.isInteger(item.costTotalPaise) &&
+                    item.costTotalPaise >= 0;
+
+
+               if (!recordedCostIsValid) {
+                    if (netQuantity > 0) {
+                         salesWithUnknownCost++;
+                         unitsWithUnknownCost += netQuantity;
+                    }
+
+                    unknownCostReturnedUnits += returnedQuantity;
+                    continue;
+               }
+
+               const returnedCostPaise = Math.round(
+                    (item.costTotalPaise * returnedQuantity) / item.quantity
+               );
+
+               const netCostPaise = item.costTotalPaise - returnedCostPaise;
+
+               knownCostOfGoodsSoldPaise += netCostPaise;
+               knownGrossProfitPaise += netRevenue - netCostPaise;
+          }
+     }
+
+     const purchaseReturns = await prisma.purchaseReturn.aggregate({
+          where: {
+               status: "COMPLETED",
+               ...(from || to ? { returnedAt: dateFilter } : {}),
+          },
+          _sum: { totalPaise: true },
+          _count: { _all: true },
+     });
+
+     return {
+          filters: {
+               from: from ?? null,
+               to: to ?? null,
+          },
+          summary: {
+               netSalesPaise,
+               knownCostOfGoodsSoldPaise,
+               knownGrossProfitPaise,
+               salesWithUnknownCost,
+               unitsWithUnknownCost,
+               returnedUnits,
+               unknownCostReturnedUnits,
+               purchaseReturnCount: purchaseReturns._count._all,
+               purchaseReturnsPaise: purchaseReturns._sum.totalPaise ?? 0,
+               profitIsComplete: salesWithUnknownCost === 0,
+          },
+     };
+}
+
+
+
+========== backend\src\validators\product.validator.mjs ==========
+
+export function validateProduct(data, { partial = false } = {}) {
+     const errors = [];
+
+     if (!data || typeof data !== "object" || Array.isArray(data)) {
+          return ["Request body must be a JSON object"];
+     }
+
+     // Product fields allowed during creation and updates.
+     const allowedFields = new Set([
+          "name",
+          "sku",
+          "description",
+          "categoryId",
+          "attributes",
+          "isActive",
+     ]);
+
+     // Variants are allowed only during product creation.
+     if (!partial) {
+          allowedFields.add("variants");
+     }
+
+     for (const field of Object.keys(data)) {
+          if (!allowedFields.has(field)) {
+               errors.push(`Unknown product field: ${field}`);
+          }
+     }
+
+     // Product name
+     if (!partial || "name" in data) {
+          if (typeof data.name !== "string" || !data.name.trim()) {
+               errors.push("Product name is required");
+          }
+     }
+
+     // Optional product fields
+     if (
+          "sku" in data &&
+          data.sku !== null &&
+          typeof data.sku !== "string"
+     ) {
+          errors.push("SKU must be a string or null");
+     }
+
+     if (
+          "description" in data &&
+          data.description !== null &&
+          typeof data.description !== "string"
+     ) {
+          errors.push("Description must be a string or null");
+     }
+
+     if (
+          "categoryId" in data &&
+          data.categoryId !== null &&
+          typeof data.categoryId !== "string"
+     ) {
+          errors.push("categoryId must be a string or null");
+     }
+
+     if ("isActive" in data && typeof data.isActive !== "boolean") {
+          errors.push("isActive must be a boolean");
+     }
+
+     // Reusable dynamic attribute validation.
+     function validateAttributes(attributes, label) {
+          if (!Array.isArray(attributes)) {
+               errors.push(`${label} must be an array`);
+               return;
+          }
+
+          for (const [index, attribute] of attributes.entries()) {
+               if (
+                    !attribute ||
+                    typeof attribute !== "object" ||
+                    Array.isArray(attribute) ||
+                    typeof attribute.name !== "string" ||
+                    !attribute.name.trim() ||
+                    typeof attribute.value !== "string"
+               ) {
+                    errors.push(
+                         `${label} item ${index + 1} must have a name and string value`
+                    );
+                    continue;
+               }
+
+               for (const field of Object.keys(attribute)) {
+                    if (field !== "name" && field !== "value") {
+                         errors.push(
+                              `${label} item ${index + 1}: unknown field ${field}`
+                         );
+                    }
+               }
+          }
+     }
+
+     // Product attributes
+     if ("attributes" in data) {
+          validateAttributes(data.attributes, "Attributes");
+     }
+
+     // Variants: accepted only during product creation.
+     if ("variants" in data) {
+          if (partial) {
+               // Normally caught by allowedFields; this is an explicit safeguard.
+               errors.push("Variants cannot be updated through the product endpoint");
+          } else if (!Array.isArray(data.variants)) {
+               errors.push("Variants must be an array");
+          } else {
+               for (const [index, variant] of data.variants.entries()) {
+                    const label = `Variant ${index + 1}`;
+
+                    if (
+                         !variant ||
+                         typeof variant !== "object" ||
+                         Array.isArray(variant)
+                    ) {
+                         errors.push(`${label} must be an object`);
+                         continue;
+                    }
+
+                    const allowedVariantFields = new Set([
+                         "name",
+                         "sku",
+                         "unit",
+                         "purchasePricePaise",
+                         "sellingPricePaise",
+                         "attributes",
+                    ]);
+
+                    for (const field of Object.keys(variant)) {
+                         if (!allowedVariantFields.has(field)) {
+                              errors.push(`${label}: unknown field ${field}`);
+                         }
+                    }
+
+                    if (typeof variant.name !== "string" || !variant.name.trim()) {
+                         errors.push(`${label} needs a name`);
+                    }
+
+                    for (const field of ["sku", "unit"]) {
+                         if (
+                              field in variant &&
+                              variant[field] !== null &&
+                              typeof variant[field] !== "string"
+                         ) {
+                              errors.push(`${label}: ${field} must be a string or null`);
+                         }
+                    }
+
+                    for (const field of [
+                         "purchasePricePaise",
+                         "sellingPricePaise",
+                    ]) {
+                         if (
+                              field in variant &&
+                              (!Number.isSafeInteger(variant[field]) ||
+                                   variant[field] < 0)
+                         ) {
+                              errors.push(
+                                   `${label}: ${field} must be a non-negative integer in paise`
+                              );
+                         }
+                    }
+
+                    if ("attributes" in variant) {
+                         validateAttributes(variant.attributes, `${label} attributes`);
+                    }
+               }
+          }
+     }
+
+     return errors;
+}
+
+
+========== backend\src\validators\variant.validator.mjs ==========
+
+export function validateVariant(data, { partial = false } = {}) {
+  const errors = [];
+
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return ["Request body must be a JSON object"];
+  }
+
+  const allowedFields = new Set([
+    "name",
+    "sku",
+    "unit",
+    "purchasePricePaise",
+    "sellingPricePaise",
+    "attributes",
+    "isActive",
+  ]);
+
+  for (const field of Object.keys(data)) {
+    if (!allowedFields.has(field)) {
+      errors.push(`Unknown variant field: ${field}`);
+    }
+  }
+
+  if (!partial || "name" in data) {
+    if (typeof data.name !== "string" || !data.name.trim()) {
+      errors.push("Variant name is required");
+    }
+  }
+
+  for (const field of ["sku", "unit"]) {
+    if (field in data && data[field] !== null &&
+        typeof data[field] !== "string") {
+      errors.push(`${field} must be a string or null`);
+    }
+  }
+
+  for (const field of ["purchasePricePaise", "sellingPricePaise"]) {
+    if (field in data &&
+        (!Number.isSafeInteger(data[field]) || data[field] < 0)) {
+      errors.push(`${field} must be a non-negative integer in paise`);
+    }
+  }
+
+  if ("isActive" in data && typeof data.isActive !== "boolean") {
+    errors.push("isActive must be a boolean");
+  }
+
+  if ("attributes" in data) {
+    if (!Array.isArray(data.attributes)) {
+      errors.push("Attributes must be an array");
+    } else {
+      for (const [index, attribute] of data.attributes.entries()) {
+        if (
+          !attribute ||
+          typeof attribute.name !== "string" ||
+          !attribute.name.trim() ||
+          typeof attribute.value !== "string"
+        ) {
+          errors.push(
+            `Attribute ${index + 1} must have a name and string value`
+          );
+        }
+      }
+    }
+  }
+
+  return errors;
+}
+
+
+========== backend\src\controllers\stock.controller.mjs ==========
+
+import * as stockService from "../services/stock.service.mjs";
+
+export async function adjustStock(req, res, next) {
+     try {
+          const { quantityChange, note } = req.body;
+
+          if (!Number.isSafeInteger(quantityChange) || quantityChange === 0) {
+               return res.status(400).json({
+                    success: false,
+                    message: "quantityChange must be a non-zero integer",
+               });
+          }
+
+          if (note !== undefined && typeof note !== "string") {
+               return res.status(400).json({
+                    success: false,
+                    message: "note must be a string",
+               });
+          }
+
+          const data = await stockService.adjustStock(
+               req.params.variantId,
+               quantityChange,
+               note
+          );
+
+          res.json({ success: true, data });
+     } catch (error) {
+          next(error);
+     }
+}
+
+export async function getStockHistory(req, res, next) {
+     try {
+          const data = await stockService.getStockHistory(req.params.variantId);
+          res.json({ success: true, count: data.length, data });
+     } catch (error) {
+          next(error);
+     }
+}
+
+
+========== backend\src\routes\stock.routes.mjs ==========
+
+import { Router } from "express";
+import {
+     adjustStock,
+     getStockHistory,
+} from "../controllers/stock.controller.mjs";
+
+const router = Router();
+
+// Add or remove stock
+router.post("/variants/:variantId/adjust", adjustStock);
+
+// View stock movement history
+router.get("/variants/:variantId/history", getStockHistory);
+
+export default router;
